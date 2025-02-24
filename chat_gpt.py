@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
-from tkinter import filedialog, font, simpledialog
+from tkinter import filedialog, font, simpledialog, Menu
 from datetime import datetime
 import os
 from reportlab.lib.pagesizes import letter
@@ -18,56 +18,47 @@ class NotesApp(ctk.CTk):
 
         self.notes = {}
         self.autosave_interval = 60
-
         self.current_theme = "Light"
 
-        # Sidebar
-        self.sidebar = ctk.CTkFrame(self, width=200)
-        self.sidebar.pack(side="left", fill="y")
+        # Menu Bar
+        self.menu_bar = Menu(self)
+        self.config(menu=self.menu_bar)
 
-        self.note_listbox = ctk.CTkTextbox(self.sidebar, width=200, height=400)
-        self.note_listbox.pack(padx=5, pady=5, fill="both", expand=True)
+        # File Menu
+        self.file_menu = Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="File", menu=self.file_menu)
+        self.file_menu.add_command(label="New Note", command=self.new_note)
+        self.file_menu.add_command(label="Open Note", command=self.load_note)
+        self.file_menu.add_command(label="Save Note", command=self.save_note)
+        self.file_menu.add_command(label="Export as PDF", command=self.export_as_pdf)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Exit", command=self.quit)
 
-        self.add_note_btn = ctk.CTkButton(self.sidebar, text="New Note", command=self.new_note)
-        self.add_note_btn.pack(pady=5)
+        # Edit Menu
+        self.edit_menu = Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Edit", menu=self.edit_menu)
+        self.edit_menu.add_command(label="Search", command=self.search_text)
+        self.edit_menu.add_command(label="Replace", command=self.replace_text)
+        self.edit_menu.add_command(label="Pin Note", command=self.pin_note)
 
-        self.delete_note_btn = ctk.CTkButton(self.sidebar, text="Delete Note", command=self.delete_note)
-        self.delete_note_btn.pack(pady=5)
+        # View Menu
+        self.view_menu = Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="View", menu=self.view_menu)
+        self.view_menu.add_command(label="Toggle Theme", command=self.toggle_theme)
 
-        self.pin_note_btn = ctk.CTkButton(self.sidebar, text="Pin Note", command=self.pin_note)
-        self.pin_note_btn.pack(pady=5)
+        # Help Menu
+        self.help_menu = Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Help", menu=self.help_menu)
+        self.help_menu.add_command(label="About", command=self.show_about)
 
         # Editor
-        self.editor_frame = ctk.CTkFrame(self)
-        self.editor_frame.pack(side="right", fill="both", expand=True)
-
-        self.text_area = ctk.CTkTextbox(self.editor_frame, width=400, height=300)
+        self.text_area = ctk.CTkTextbox(self, width=400, height=300)
         self.text_area.pack(padx=5, pady=5, fill="both", expand=True)
+        self.text_area.bind("<ButtonRelease-1>", self.show_formatting_menu)
 
-        # Bottom bar
-        self.bottom_frame = ctk.CTkFrame(self.editor_frame)
-        self.bottom_frame.pack(fill="x")
-
-        self.save_btn = ctk.CTkButton(self.bottom_frame, text="Save", command=self.save_note)
-        self.save_btn.pack(side="left", padx=5, pady=5)
-
-        self.load_btn = ctk.CTkButton(self.bottom_frame, text="Load", command=self.load_note)
-        self.load_btn.pack(side="left", padx=5, pady=5)
-
-        self.export_pdf_btn = ctk.CTkButton(self.bottom_frame, text="Export PDF", command=self.export_as_pdf)
-        self.export_pdf_btn.pack(side="left", padx=5, pady=5)
-
-        self.search_entry = ctk.CTkEntry(self.bottom_frame, placeholder_text="Search...")
-        self.search_entry.pack(side="left", padx=5)
-
-        self.search_btn = ctk.CTkButton(self.bottom_frame, text="Find", command=self.search_text)
-        self.search_btn.pack(side="left", padx=5)
-
-        self.theme_btn = ctk.CTkButton(self.bottom_frame, text="Toggle Theme", command=self.toggle_theme)
-        self.theme_btn.pack(side="right", padx=5)
-
-        self.word_count_label = ctk.CTkLabel(self.bottom_frame, text="Words: 0 | Characters: 0")
-        self.word_count_label.pack(side="right", padx=5)
+        # Status Bar
+        self.status_bar = ctk.CTkLabel(self, text="Words: 0 | Characters: 0", anchor="e")
+        self.status_bar.pack(side="bottom", fill="x")
 
         # Shortcuts
         self.bind("<Control-s>", lambda event: self.save_note())
@@ -78,30 +69,48 @@ class NotesApp(ctk.CTk):
         # Autosave
         self.start_autosave()
 
+    def show_formatting_menu(self, event):
+        try:
+            selected_text = self.text_area.get(ctk.SEL_FIRST, ctk.SEL_LAST)
+            if selected_text:
+                format_menu = Menu(self, tearoff=0)
+                format_menu.add_command(label="Bold", command=lambda: self.apply_tag("bold"))
+                format_menu.add_command(label="Italic", command=lambda: self.apply_tag("italic"))
+                format_menu.add_command(label="Underline", command=lambda: self.apply_tag("underline"))
+                format_menu.add_command(label="Change Font Size", command=self.change_font_size)
+                format_menu.add_command(label="Align Left", command=lambda: self.align_text("left"))
+                format_menu.add_command(label="Align Center", command=lambda: self.align_text("center"))
+                format_menu.add_command(label="Align Right", command=lambda: self.align_text("right"))
+                format_menu.tk_popup(event.x_root, event.y_root)
+        except:
+            pass
+
+    def apply_tag(self, tag):
+        if tag == "bold":
+            self.text_area.tag_add("bold", ctk.SEL_FIRST, ctk.SEL_LAST)
+            self.text_area.tag_config("bold", foreground="black", underline=0)
+        elif tag == "italic":
+            self.text_area.tag_add("italic", ctk.SEL_FIRST, ctk.SEL_LAST)
+            self.text_area.tag_config("italic", foreground="gray")
+        elif tag == "underline":
+            self.text_area.tag_add("underline", ctk.SEL_FIRST, ctk.SEL_LAST)
+            self.text_area.tag_config("underline", underline=1)
+
+    def change_font_size(self):
+        size = simpledialog.askinteger("Font Size", "Enter new font size:")
+        if size:
+            self.text_area.tag_add("size", ctk.SEL_FIRST, ctk.SEL_LAST)
+            self.text_area.tag_config("size", offset=size // 2)
+
+    def align_text(self, alignment):
+        self.text_area.tag_add(alignment, ctk.SEL_FIRST, ctk.SEL_LAST)
+        self.text_area.tag_config(alignment, justify=alignment)
+
     def new_note(self):
-        note_name = simpledialog.askstring("New Note", "Enter note name:")
-        if note_name:
-            self.notes[note_name] = {"content": "", "pinned": False}
-            self.update_notes_list()
-
-    def delete_note(self):
-        note_name = simpledialog.askstring("Delete Note", "Enter note name to delete:")
-        if note_name in self.notes:
-            del self.notes[note_name]
-            self.update_notes_list()
-
-    def pin_note(self):
-        note_name = simpledialog.askstring("Pin Note", "Enter note name to pin:")
-        if note_name in self.notes:
-            self.notes[note_name]["pinned"] = not self.notes[note_name]["pinned"]
-            self.update_notes_list()
+        self.text_area.delete("1.0", "end")
 
     def save_note(self):
         content = self.text_area.get("1.0", "end-1c")
-        if not content.strip():
-            CTkMessagebox(title="Error", message="Note is empty!", icon="cancel")
-            return
-
         file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt")])
         if file_path:
             with open(file_path, "w") as file:
@@ -119,27 +128,31 @@ class NotesApp(ctk.CTk):
 
     def export_as_pdf(self):
         content = self.text_area.get("1.0", "end-1c")
-        if not content.strip():
-            CTkMessagebox(title="Error", message="Note is empty!", icon="cancel")
-            return
-
         file_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF Files", "*.pdf")])
         if file_path:
             c = canvas.Canvas(file_path, pagesize=letter)
             width, height = letter
             text_object = c.beginText(40, height - 40)
             text_object.setFont("Helvetica", 12)
-
             for line in content.split('\n'):
                 text_object.textLine(line)
-
             c.drawText(text_object)
             c.save()
             CTkMessagebox(title="Success", message="PDF exported!", icon="check")
 
+    def toggle_theme(self):
+        self.current_theme = "Dark" if self.current_theme == "Light" else "Light"
+        ctk.set_appearance_mode(self.current_theme)
+
+    def show_about(self):
+        CTkMessagebox(title="About", message="Notes App\nCreated with customtkinter", icon="info")
+
+    def pin_note(self):
+        self.attributes('-topmost', True)
+        CTkMessagebox(title="Pin Note", message="Note pinned on top!", icon="info")
+
     def search_text(self):
-        search_term = self.search_entry.get()
-        self.text_area.tag_remove("highlight", "1.0", "end")
+        search_term = simpledialog.askstring("Search", "Enter text to search:")
         if search_term:
             start = "1.0"
             while True:
@@ -151,32 +164,32 @@ class NotesApp(ctk.CTk):
                 self.text_area.tag_config("highlight", background="yellow")
                 start = end
 
-    def toggle_theme(self):
-        self.current_theme = "Dark" if self.current_theme == "Light" else "Light"
-        ctk.set_appearance_mode(self.current_theme)
+    def replace_text(self):
+        search_term = simpledialog.askstring("Replace", "Enter text to search:")
+        if search_term:
+            replace_term = simpledialog.askstring("Replace", "Enter replacement text:")
+            content = self.text_area.get("1.0", "end-1c")
+            new_content = content.replace(search_term, replace_term)
+            self.text_area.delete("1.0", "end")
+            self.text_area.insert("1.0", new_content)
+            CTkMessagebox(title="Success", message="Text replaced!", icon="check")
 
     def autosave(self):
         while True:
-            self.save_note()
+            content = self.text_area.get("1.0", "end-1c")
+            if content.strip():
+                self.save_note()
             threading.Event().wait(self.autosave_interval)
 
     def start_autosave(self):
         autosave_thread = threading.Thread(target=self.autosave, daemon=True)
         autosave_thread.start()
 
-    def update_notes_list(self):
-        self.note_listbox.delete("1.0", "end")
-        pinned_notes = [n for n in self.notes if self.notes[n]["pinned"]]
-        regular_notes = [n for n in self.notes if not self.notes[n]["pinned"]]
-        for note in pinned_notes + regular_notes:
-            pin_symbol = "📌 " if self.notes[note]["pinned"] else ""
-            self.note_listbox.insert("end", pin_symbol + note + "\n")
-
     def update_word_count(self):
         content = self.text_area.get("1.0", "end-1c")
         words = len(content.split())
         chars = len(content)
-        self.word_count_label.configure(text=f"Words: {words} | Characters: {chars}")
+        self.status_bar.configure(text=f"Words: {words} | Characters: {chars}")
 
 if __name__ == "__main__":
     app = NotesApp()
