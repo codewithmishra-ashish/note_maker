@@ -51,7 +51,7 @@ class NotesApp(ctk.CTk):
         self.help_menu.add_command(label="About", command=self.show_about)
 
         # This is major text editting area
-        self.text_area = Text(self, width=50, height=20, font=("Arial", 12))
+        self.text_area = Text(self, width=50, height=20, font=("Arial", 16))
         self.text_area.pack(padx=5, pady=5, fill="both", expand=True)
         self.text_area.bind("<Button-3>", self.show_formatting_menu)
         
