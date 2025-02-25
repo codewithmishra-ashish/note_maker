@@ -59,7 +59,7 @@ class NotesApp(ctk.CTk):
         # Configure base formatting tags
         self.text_area.tag_configure("bold", font=("Arial", 12, "bold"))
         self.text_area.tag_configure("italic", font=("Arial", 12, "italic"))
-        self.text_area.tag_configure("underline", font=("Arial", 12), underline=True)
+        self.text_area.tag_configure("underline", font=("Arial", 12, "normal"), underline=True)
         self.text_area.tag_configure("highlight", background="#FFFF99")
 
         # Footer Frame
@@ -78,9 +78,9 @@ class NotesApp(ctk.CTk):
         self.bind("<Control-s>", lambda event: self.save_note())
         self.bind("<Control-f>", lambda event: self.search_text())
         self.bind("<Control-e>", lambda event: self.export_as_pdf())
-        self.bind("<Control-b>", lambda event: self.toggle_format("bold"))
-        self.bind("<Control-i>", lambda event: self.toggle_format("italic"))
-        self.bind("<Control-u>", lambda event: self.toggle_format("underline"))
+        self.bind("<Control-b>", lambda event: self.apply_format("bold"))
+        self.bind("<Control-i>", lambda event: self.apply_format("italic"))
+        self.bind("<Control-u>", lambda event: self.apply_format("underline"))
         self.bind("<KeyRelease>", lambda event: self.update_word_count())
 
         # Autosave
@@ -90,9 +90,9 @@ class NotesApp(ctk.CTk):
         try:
             if self.text_area.tag_ranges("sel"):
                 format_menu = Menu(self, tearoff=0)
-                format_menu.add_command(label="Bold (Ctrl+B)", command=lambda: self.toggle_format("bold"))
-                format_menu.add_command(label="Italic (Ctrl+I)", command=lambda: self.toggle_format("italic"))
-                format_menu.add_command(label="Underline (Ctrl+U)", command=lambda: self.toggle_format("underline"))
+                format_menu.add_command(label="Bold (Ctrl+B)", command=lambda: self.apply_format("bold"))
+                format_menu.add_command(label="Italic (Ctrl+I)", command=lambda: self.apply_format("italic"))
+                format_menu.add_command(label="Underline (Ctrl+U)", command=lambda: self.apply_format("underline"))
                 format_menu.add_command(label="Change Font Size", command=self.change_font_size)
                 format_menu.add_command(label="Align Left", command=lambda: self.align_text("left"))
                 format_menu.add_command(label="Align Center", command=lambda: self.align_text("center"))
@@ -101,75 +101,38 @@ class NotesApp(ctk.CTk):
         except:
             pass
 
-    def toggle_format(self, style):
+    def apply_format(self, style):
         try:
             if self.text_area.tag_ranges("sel"):
-                start = "sel.first"
-                end = "sel.last"
+                start = self.text_area.index("sel.first")
+                end = self.text_area.index("sel.last")
                 current_tags = self.text_area.tag_names(start)
-                
-                # Get current font size and styles
-                size = 12
-                styles = set()
-                for tag in current_tags:
-                    if tag.startswith("size_"):
-                        size = int(tag.split("_")[1])
-                    elif tag == "bold":
-                        styles.add("bold")
-                    elif tag == "italic":
-                        styles.add("italic")
-                    elif tag == "underline":
-                        styles.add("underline")
 
-                # Toggle the selected style
-                if style in styles:
-                    styles.remove(style)
+                # Check if style is already applied
+                if style in current_tags:
                     self.text_area.tag_remove(style, start, end)
                 else:
-                    styles.add(style)
                     self.text_area.tag_add(style, start, end)
 
-                # Remove any previous combined format tags
+                # Preserve the content
+                content = self.text_area.get("1.0", "end-1c")
+                self.text_area.delete("1.0", "end")
+                self.text_area.insert("1.0", content)
+                
+                # Reapply all current tags to maintain other formatting
                 for tag in current_tags:
-                    if tag.startswith("format_"):
-                        self.text_area.tag_remove(tag, start, end)
-
-                # Apply combined formatting if there are styles
-                if styles:
-                    font_style = "normal"
-                    underline = "underline" in styles
-                    
-                    if "bold" in styles and "italic" in styles:
-                        font_style = "bold italic"
-                    elif "bold" in styles:
-                        font_style = "bold"
-                    elif "italic" in styles:
-                        font_style = "italic"
-
-                    # Configure and apply the combined tag
-                    combined_tag = f"format_{'_'.join(sorted(styles))}_{size}"
-                    self.text_area.tag_configure(
-                        combined_tag,
-                        font=("Arial", size, font_style),
-                        underline=underline
-                    )
-                    self.text_area.tag_add(combined_tag, start, end)
-
-                # Update size tag if no styles remain
-                if not styles and size != 12:
-                    size_tag = f"size_{size}"
-                    self.text_area.tag_configure(size_tag, font=("Arial", size))
-                    self.text_area.tag_add(size_tag, start, end)
+                    if tag in ["bold", "italic", "underline"] and tag != style:
+                        self.text_area.tag_add(tag, start, end)
 
         except Exception as e:
-            print(f"Error in toggle_format: {e}")
+            print(f"Error in apply_format: {e}")
 
     def change_font_size(self):
         size = simpledialog.askinteger("Font Size", "Enter new font size:", minvalue=8, maxvalue=72)
         if size and self.text_area.tag_ranges("sel"):
             try:
-                start = "sel.first"
-                end = "sel.last"
+                start = self.text_area.index("sel.first")
+                end = self.text_area.index("sel.last")
                 current_tags = self.text_area.tag_names(start)
                 
                 # Get current styles
@@ -178,40 +141,32 @@ class NotesApp(ctk.CTk):
                     if tag in current_tags:
                         styles.add(tag)
                 
-                # Remove existing size and format tags
+                # Remove existing size tags
                 for tag in current_tags:
-                    if tag.startswith("size_") or tag.startswith("format_"):
+                    if tag.startswith("size_"):
                         self.text_area.tag_remove(tag, start, end)
                 
-                # Apply new formatting with size
-                if styles:
-                    font_style = "normal"
-                    underline = "underline" in styles
-                    if "bold" in styles and "italic" in styles:
-                        font_style = "bold italic"
-                    elif "bold" in styles:
-                        font_style = "bold"
-                    elif "italic" in styles:
-                        font_style = "italic"
-                    
-                    combined_tag = f"format_{'_'.join(sorted(styles))}_{size}"
-                    self.text_area.tag_configure(
-                        combined_tag,
-                        font=("Arial", size, font_style),
-                        underline=underline
-                    )
-                    self.text_area.tag_add(combined_tag, start, end)
-                    
-                    # Reapply individual style tags
-                    for s in styles:
-                        self.text_area.tag_add(s, start, end)
+                # Apply new size tag
+                size_tag = f"size_{size}"
+                font_config = ["Arial", size]
+                if "bold" in styles and "italic" in styles:
+                    font_config.append("bold italic")
+                elif "bold" in styles:
+                    font_config.append("bold")
+                elif "italic" in styles:
+                    font_config.append("italic")
                 else:
-                    size_tag = f"size_{size}"
-                    self.text_area.tag_configure(size_tag, font=("Arial", size))
-                    self.text_area.tag_add(size_tag, start, end)
+                    font_config.append("normal")
+                
+                self.text_area.tag_configure(size_tag, font=tuple(font_config), underline="underline" in styles)
+                self.text_area.tag_add(size_tag, start, end)
+                
+                # Reapply style tags
+                for style in styles:
+                    self.text_area.tag_add(style, start, end)
 
-            except:
-                pass
+            except Exception as e:
+                print(f"Error in change_font_size: {e}")
 
     def align_text(self, alignment):
         try:
