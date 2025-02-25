@@ -23,12 +23,12 @@ A simple yet powerful note-taking application built with Python, customtkinter, 
 ## Screenshots
 
 ![Main Window](screenshots/main_window.png)
-![Formatting Menu](screenshots/formatting_menu.png)
 
 ## Requirements
 
 - Python 3.6+
 - customtkinter
+- ctkmessagebox
 - tkinter
 - reportlab
 
