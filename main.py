@@ -20,11 +20,11 @@ class NotesApp(ctk.CTk):
         self.autosave_interval = 60
         self.current_theme = "Light"
 
-        # Menu Bar
+        # Here, we have initialized the menu bar.
         self.menu_bar = Menu(self)
         self.config(menu=self.menu_bar)
 
-        # File Menu
+        # This is File menu option and its contents
         self.file_menu = Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="File", menu=self.file_menu)
         self.file_menu.add_command(label="New Note", command=self.new_note)
@@ -34,47 +34,46 @@ class NotesApp(ctk.CTk):
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Exit", command=self.quit)
 
-        # Edit Menu
+        # This is Edit menu option and its contents
         self.edit_menu = Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="Edit", menu=self.edit_menu)
         self.edit_menu.add_command(label="Search", command=self.search_text)
         self.edit_menu.add_command(label="Replace", command=self.replace_text)
-        self.edit_menu.add_command(label="Pin Note", command=self.pin_note)
 
-        # View Menu
+        # This is View menu option where u can change theme to dark
         self.view_menu = Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="View", menu=self.view_menu)
         self.view_menu.add_command(label="Toggle Theme", command=self.toggle_theme)
 
-        # Help Menu
+        # Here, you get into help section presenting creator info
         self.help_menu = Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="Help", menu=self.help_menu)
         self.help_menu.add_command(label="About", command=self.show_about)
 
-        # Editor with Tkinter Text widget
+        # This is major text editting area
         self.text_area = Text(self, width=50, height=20, font=("Arial", 12))
         self.text_area.pack(padx=5, pady=5, fill="both", expand=True)
         self.text_area.bind("<Button-3>", self.show_formatting_menu)
         
-        # Configure base formatting tags
+        # These are basic options for word formatting
         self.text_area.tag_configure("bold", font=("Arial", 12, "bold"))
         self.text_area.tag_configure("italic", font=("Arial", 12, "italic"))
         self.text_area.tag_configure("underline", font=("Arial", 12, "normal"), underline=True)
         self.text_area.tag_configure("highlight", background="#FFFF99")
 
-        # Footer Frame
+        # This is for initializing footer
         self.footer_frame = ctk.CTkFrame(self)
         self.footer_frame.pack(side="bottom", fill="x")
 
-        # Creator Label (left)
+        # This represents creator section
         self.creator_label = ctk.CTkLabel(self.footer_frame, text="Created by Ashish Mishra", anchor="w")
         self.creator_label.pack(side="left", padx=5)
 
-        # Status Label (right)
+        # This displays word & character count
         self.status_label = ctk.CTkLabel(self.footer_frame, text="Words: 0 | Characters: 0", anchor="e")
         self.status_label.pack(side="right", padx=5)
 
-        # Shortcuts
+        # Creation of shortcut keys
         self.bind("<Control-s>", lambda event: self.save_note())
         self.bind("<Control-f>", lambda event: self.search_text())
         self.bind("<Control-e>", lambda event: self.export_as_pdf())
@@ -83,9 +82,10 @@ class NotesApp(ctk.CTk):
         self.bind("<Control-u>", lambda event: self.apply_format("underline"))
         self.bind("<KeyRelease>", lambda event: self.update_word_count())
 
-        # Autosave
+        # Autosave Option Enabled
         self.start_autosave()
 
+    # This gives toggle to word formatting options
     def show_formatting_menu(self, event):
         try:
             if self.text_area.tag_ranges("sel"):
@@ -101,6 +101,8 @@ class NotesApp(ctk.CTk):
         except:
             pass
 
+
+    # This applies formatting to the text
     def apply_format(self, style):
         try:
             if self.text_area.tag_ranges("sel"):
@@ -127,6 +129,8 @@ class NotesApp(ctk.CTk):
         except Exception as e:
             print(f"Error in apply_format: {e}")
 
+
+    # This creates font change.
     def change_font_size(self):
         size = simpledialog.askinteger("Font Size", "Enter new font size:", minvalue=8, maxvalue=72)
         if size and self.text_area.tag_ranges("sel"):
@@ -168,6 +172,8 @@ class NotesApp(ctk.CTk):
             except Exception as e:
                 print(f"Error in change_font_size: {e}")
 
+
+    # This helps to allign text
     def align_text(self, alignment):
         try:
             if self.text_area.tag_ranges("sel"):
@@ -177,9 +183,13 @@ class NotesApp(ctk.CTk):
         except:
             pass
 
+
+    # This clears the text area.
     def new_note(self):
         self.text_area.delete("1.0", "end")
 
+
+    # This saves the note made 
     def save_note(self):
         content = self.text_area.get("1.0", "end-1c")
         file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt")])
@@ -188,6 +198,8 @@ class NotesApp(ctk.CTk):
                 file.write(content)
             CTkMessagebox(title="Success", message="Note saved!", icon="check")
 
+
+    # This opens pre-existing files
     def load_note(self):
         file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
         if file_path:
@@ -197,6 +209,8 @@ class NotesApp(ctk.CTk):
                 self.text_area.insert("1.0", content)
             self.update_word_count()
 
+
+    # This is to save made note as pdf
     def export_as_pdf(self):
         content = self.text_area.get("1.0", "end-1c")
         file_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF Files", "*.pdf")])
@@ -211,6 +225,8 @@ class NotesApp(ctk.CTk):
             c.save()
             CTkMessagebox(title="Success", message="PDF exported!", icon="check")
 
+
+    # This changes theme of the application
     def toggle_theme(self):
         self.current_theme = "Dark" if self.current_theme == "Light" else "Light"
         ctk.set_appearance_mode(self.current_theme)
@@ -218,17 +234,17 @@ class NotesApp(ctk.CTk):
         fg = "white" if self.current_theme == "Dark" else "black"
         self.text_area.configure(bg=bg, fg=fg)
 
+
+    # This gives description about the creator
     def show_about(self):
         CTkMessagebox(
             title="About", 
-            message="This NoteMaker is created by Ashish Mishra, 1st year, B.Tech CSE MANIT, BHOPAL",
+            message="This NoteMaker is created by Ashish Mishra, B.Tech CSE MANIT, BHOPAL",
             icon="info"
         )
 
-    def pin_note(self):
-        self.attributes('-topmost', True)
-        CTkMessagebox(title="Pin Note", message="Note pinned on top!", icon="info")
 
+    # This is to search text
     def search_text(self):
         search_term = simpledialog.askstring("Search", "Enter text to search:")
         if search_term:
@@ -242,6 +258,8 @@ class NotesApp(ctk.CTk):
                 self.text_area.tag_add("highlight", start, end)
                 start = end
 
+
+    # This is to search & replace text 
     def replace_text(self):
         search_term = simpledialog.askstring("Replace", "Enter text to search:")
         if search_term:
@@ -252,6 +270,8 @@ class NotesApp(ctk.CTk):
             self.text_area.insert("1.0", new_content)
             CTkMessagebox(title="Success", message="Text replaced!", icon="check")
 
+
+    # This autosaves the file if exists already
     def autosave(self):
         while True:
             content = self.text_area.get("1.0", "end-1c")
@@ -265,6 +285,8 @@ class NotesApp(ctk.CTk):
         autosave_thread = threading.Thread(target=self.autosave, daemon=True)
         autosave_thread.start()
 
+
+    # This updates word count & charater as written
     def update_word_count(self):
         content = self.text_area.get("1.0", "end-1c")
         words = len(content.split())

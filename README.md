@@ -13,7 +13,6 @@ A simple yet powerful note-taking application built with Python, customtkinter, 
 - **Search & Replace**: Find and replace text within notes
 - **Auto-save**: Automatically saves notes with timestamps
 - **Theme Toggle**: Switch between light and dark themes
-- **Pin Note**: Keep the window on top of other applications
 - **Word Count**: Displays word and character count in real-time
 - **Keyboard Shortcuts**:
   - Ctrl+S: Save note
@@ -35,6 +34,8 @@ A simple yet powerful note-taking application built with Python, customtkinter, 
 ## Installation
 
 1. Clone this repository:
+
 ```bash
 git clone https://github.com/your-username/notemaker.git
 cd notemaker
+```
