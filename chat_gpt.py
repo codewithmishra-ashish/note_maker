@@ -20,6 +20,12 @@ class NotesApp(ctk.CTk):
         self.autosave_interval = 60
         self.current_theme = "Light"
 
+        # Fonts
+        self.base_font = font.Font(family="Arial", size=12)
+        self.bold_font = font.Font(family="Arial", size=12, weight="bold")
+        self.italic_font = font.Font(family="Arial", size=12, slant="italic")
+        self.underline_font = font.Font(family="Arial", size=12, underline=1)
+
         # Menu Bar
         self.menu_bar = Menu(self)
         self.config(menu=self.menu_bar)
@@ -54,7 +60,7 @@ class NotesApp(ctk.CTk):
         # Editor
         self.text_area = ctk.CTkTextbox(self, width=400, height=300)
         self.text_area.pack(padx=5, pady=5, fill="both", expand=True)
-        self.text_area.bind("<ButtonRelease-1>", self.show_formatting_menu)
+        self.text_area.bind("<Button-3>", self.show_formatting_menu)
 
         # Status Bar
         self.status_bar = ctk.CTkLabel(self, text="Words: 0 | Characters: 0", anchor="e")
@@ -86,21 +92,28 @@ class NotesApp(ctk.CTk):
             pass
 
     def apply_tag(self, tag):
-        if tag == "bold":
-            self.text_area.tag_add("bold", ctk.SEL_FIRST, ctk.SEL_LAST)
-            self.text_area.tag_config("bold", foreground="black", underline=0)
-        elif tag == "italic":
-            self.text_area.tag_add("italic", ctk.SEL_FIRST, ctk.SEL_LAST)
-            self.text_area.tag_config("italic", foreground="gray")
-        elif tag == "underline":
-            self.text_area.tag_add("underline", ctk.SEL_FIRST, ctk.SEL_LAST)
-            self.text_area.tag_config("underline", underline=1)
+        try:
+            if tag == "bold":
+                self.text_area.tag_add("bold", ctk.SEL_FIRST, ctk.SEL_LAST)
+                self.text_area.tag_config("bold", font=self.bold_font)
+            elif tag == "italic":
+                self.text_area.tag_add("italic", ctk.SEL_FIRST, ctk.SEL_LAST)
+                self.text_area.tag_config("italic", font=self.italic_font)
+            elif tag == "underline":
+                self.text_area.tag_add("underline", ctk.SEL_FIRST, ctk.SEL_LAST)
+                self.text_area.tag_config("underline", font=self.underline_font)
+        except:
+            pass
 
     def change_font_size(self):
         size = simpledialog.askinteger("Font Size", "Enter new font size:")
         if size:
-            self.text_area.tag_add("size", ctk.SEL_FIRST, ctk.SEL_LAST)
-            self.text_area.tag_config("size", offset=size // 2)
+            try:
+                new_font = font.Font(family="Arial", size=size)
+                self.text_area.tag_add("size", ctk.SEL_FIRST, ctk.SEL_LAST)
+                self.text_area.tag_config("size", font=new_font)
+            except:
+                pass
 
     def align_text(self, alignment):
         self.text_area.tag_add(alignment, ctk.SEL_FIRST, ctk.SEL_LAST)
