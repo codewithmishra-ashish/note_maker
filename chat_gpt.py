@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
-from tkinter import filedialog, font, simpledialog, Menu
+from tkinter import filedialog, simpledialog, Menu, Text
 from datetime import datetime
 import os
 from reportlab.lib.pagesizes import letter
@@ -19,12 +19,6 @@ class NotesApp(ctk.CTk):
         self.notes = {}
         self.autosave_interval = 60
         self.current_theme = "Light"
-
-        # Fonts
-        self.base_font = font.Font(family="Arial", size=12)
-        self.bold_font = font.Font(family="Arial", size=12, weight="bold")
-        self.italic_font = font.Font(family="Arial", size=12, slant="italic")
-        self.underline_font = font.Font(family="Arial", size=12, underline=1)
 
         # Menu Bar
         self.menu_bar = Menu(self)
@@ -57,10 +51,16 @@ class NotesApp(ctk.CTk):
         self.menu_bar.add_cascade(label="Help", menu=self.help_menu)
         self.help_menu.add_command(label="About", command=self.show_about)
 
-        # Editor
-        self.text_area = ctk.CTkTextbox(self, width=400, height=300)
+        # Editor with Tkinter Text widget
+        self.text_area = Text(self, width=50, height=20, font=("Arial", 20))
         self.text_area.pack(padx=5, pady=5, fill="both", expand=True)
         self.text_area.bind("<Button-3>", self.show_formatting_menu)
+        
+        # Configure base formatting tags
+        self.text_area.tag_configure("bold", font=("Arial", 12, "bold"))
+        self.text_area.tag_configure("italic", font=("Arial", 12, "italic"))
+        self.text_area.tag_configure("underline", font=("Arial", 12), underline=True)
+        self.text_area.tag_configure("highlight", background="#FFFF99")
 
         # Status Bar
         self.status_bar = ctk.CTkLabel(self, text="Words: 0 | Characters: 0", anchor="e")
@@ -77,12 +77,11 @@ class NotesApp(ctk.CTk):
 
     def show_formatting_menu(self, event):
         try:
-            selected_text = self.text_area.get(ctk.SEL_FIRST, ctk.SEL_LAST)
-            if selected_text:
+            if self.text_area.tag_ranges("sel"):
                 format_menu = Menu(self, tearoff=0)
-                format_menu.add_command(label="Bold", command=lambda: self.apply_tag("bold"))
-                format_menu.add_command(label="Italic", command=lambda: self.apply_tag("italic"))
-                format_menu.add_command(label="Underline", command=lambda: self.apply_tag("underline"))
+                format_menu.add_command(label="Bold", command=lambda: self.toggle_format("bold"))
+                format_menu.add_command(label="Italic", command=lambda: self.toggle_format("italic"))
+                format_menu.add_command(label="Underline", command=lambda: self.toggle_format("underline"))
                 format_menu.add_command(label="Change Font Size", command=self.change_font_size)
                 format_menu.add_command(label="Align Left", command=lambda: self.align_text("left"))
                 format_menu.add_command(label="Align Center", command=lambda: self.align_text("center"))
@@ -91,33 +90,127 @@ class NotesApp(ctk.CTk):
         except:
             pass
 
-    def apply_tag(self, tag):
+    def toggle_format(self, style):
         try:
-            if tag == "bold":
-                self.text_area.tag_add("bold", ctk.SEL_FIRST, ctk.SEL_LAST)
-                self.text_area.tag_config("bold", font=self.bold_font)
-            elif tag == "italic":
-                self.text_area.tag_add("italic", ctk.SEL_FIRST, ctk.SEL_LAST)
-                self.text_area.tag_config("italic", font=self.italic_font)
-            elif tag == "underline":
-                self.text_area.tag_add("underline", ctk.SEL_FIRST, ctk.SEL_LAST)
-                self.text_area.tag_config("underline", font=self.underline_font)
+            if self.text_area.tag_ranges("sel"):
+                start = "sel.first"
+                end = "sel.last"
+                current_tags = self.text_area.tag_names(start)
+                
+                # Get current font size
+                size = 12
+                for tag in current_tags:
+                    if tag.startswith("size_"):
+                        size = int(tag.split("_")[1])
+                        self.text_area.tag_remove(tag, start, end)
+                
+                # Get current styles
+                styles = set()
+                if "bold" in current_tags:
+                    styles.add("bold")
+                if "italic" in current_tags:
+                    styles.add("italic")
+                if "underline" in current_tags:
+                    styles.add("underline")
+
+                # Toggle the selected style
+                if style in styles:
+                    styles.remove(style)
+                else:
+                    styles.add(style)
+
+                # Remove all existing style tags
+                for tag in ["bold", "italic", "underline"]:
+                    self.text_area.tag_remove(tag, start, end)
+
+                # Create combined tag based on current styles
+                if styles:
+                    font_style = "normal"
+                    underline = False
+                    if "bold" in styles and "italic" in styles:
+                        font_style = "bold italic"
+                    elif "bold" in styles:
+                        font_style = "bold"
+                    elif "italic" in styles:
+                        font_style = "italic"
+                    if "underline" in styles:
+                        underline = True
+                    
+                    combined_tag = f"format_{'_'.join(sorted(styles))}_{size}"
+                    self.text_area.tag_configure(
+                        combined_tag,
+                        font=("Arial", size, font_style),
+                        underline=underline
+                    )
+                    self.text_area.tag_add(combined_tag, start, end)
+                    
+                    # Reapply individual tags for tracking
+                    for s in styles:
+                        self.text_area.tag_add(s, start, end)
+
         except:
             pass
 
     def change_font_size(self):
-        size = simpledialog.askinteger("Font Size", "Enter new font size:")
-        if size:
+        size = simpledialog.askinteger("Font Size", "Enter new font size:", minvalue=8, maxvalue=72)
+        if size and self.text_area.tag_ranges("sel"):
             try:
-                new_font = font.Font(family="Arial", size=size)
-                self.text_area.tag_add("size", ctk.SEL_FIRST, ctk.SEL_LAST)
-                self.text_area.tag_config("size", font=new_font)
+                start = "sel.first"
+                end = "sel.last"
+                current_tags = self.text_area.tag_names(start)
+                
+                # Get current styles
+                styles = set()
+                for tag in ["bold", "italic", "underline"]:
+                    if tag in current_tags:
+                        styles.add(tag)
+                
+                # Remove existing size tags
+                for tag in current_tags:
+                    if tag.startswith("size_") or tag.startswith("format_"):
+                        self.text_area.tag_remove(tag, start, end)
+                
+                # Apply new formatting with size
+                if styles:
+                    font_style = "normal"
+                    underline = False
+                    if "bold" in styles and "italic" in styles:
+                        font_style = "bold italic"
+                    elif "bold" in styles:
+                        font_style = "bold"
+                    elif "italic" in styles:
+                        font_style = "italic"
+                    if "underline" in styles:
+                        underline = True
+                    
+                    combined_tag = f"format_{'_'.join(sorted(styles))}_{size}"
+                    self.text_area.tag_configure(
+                        combined_tag,
+                        font=("Arial", size, font_style),
+                        underline=underline
+                    )
+                    self.text_area.tag_add(combined_tag, start, end)
+                    
+                    # Reapply individual tags
+                    for s in styles:
+                        self.text_area.tag_add(s, start, end)
+                else:
+                    # Just size change
+                    size_tag = f"size_{size}"
+                    self.text_area.tag_configure(size_tag, font=("Arial", size))
+                    self.text_area.tag_add(size_tag, start, end)
+
             except:
                 pass
 
     def align_text(self, alignment):
-        self.text_area.tag_add(alignment, ctk.SEL_FIRST, ctk.SEL_LAST)
-        self.text_area.tag_config(alignment, justify=alignment)
+        try:
+            if self.text_area.tag_ranges("sel"):
+                tag_name = f"align_{alignment}"
+                self.text_area.tag_configure(tag_name, justify=alignment)
+                self.text_area.tag_add(tag_name, "sel.first", "sel.last")
+        except:
+            pass
 
     def new_note(self):
         self.text_area.delete("1.0", "end")
@@ -156,6 +249,9 @@ class NotesApp(ctk.CTk):
     def toggle_theme(self):
         self.current_theme = "Dark" if self.current_theme == "Light" else "Light"
         ctk.set_appearance_mode(self.current_theme)
+        bg = "#2B2B2B" if self.current_theme == "Dark" else "white"
+        fg = "white" if self.current_theme == "Dark" else "black"
+        self.text_area.configure(bg=bg, fg=fg)
 
     def show_about(self):
         CTkMessagebox(title="About", message="Notes App\nCreated with customtkinter", icon="info")
@@ -168,13 +264,13 @@ class NotesApp(ctk.CTk):
         search_term = simpledialog.askstring("Search", "Enter text to search:")
         if search_term:
             start = "1.0"
+            self.text_area.tag_remove("highlight", "1.0", "end")
             while True:
                 start = self.text_area.search(search_term, start, stopindex="end")
                 if not start:
                     break
                 end = f"{start}+{len(search_term)}c"
                 self.text_area.tag_add("highlight", start, end)
-                self.text_area.tag_config("highlight", background="yellow")
                 start = end
 
     def replace_text(self):
@@ -191,7 +287,9 @@ class NotesApp(ctk.CTk):
         while True:
             content = self.text_area.get("1.0", "end-1c")
             if content.strip():
-                self.save_note()
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                with open(f"autosave_{timestamp}.txt", "w") as file:
+                    file.write(content)
             threading.Event().wait(self.autosave_interval)
 
     def start_autosave(self):
